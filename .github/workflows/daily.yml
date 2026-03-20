@@ -1,0 +1,57 @@
+name: Daily Finance Digest
+
+on:
+  schedule:
+    - cron: "0 12 * * *"  # 7am EST = noon UTC
+  workflow_dispatch:       # manual trigger for testing
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write Teller certificate files
+        env:
+          TELLER_CERT: ${{ secrets.TELLER_CERT }}
+          TELLER_KEY: ${{ secrets.TELLER_KEY }}
+        run: |
+          echo "$TELLER_CERT" | base64 -d > certificate.pem
+          echo "$TELLER_KEY" | base64 -d > private_key.pem
+
+      - name: Run finance tracker
+        env:
+          TELLER_ACCESS_TOKEN_CHASE: ${{ secrets.TELLER_ACCESS_TOKEN_CHASE }}
+          TELLER_CERT_PATH: certificate.pem
+          TELLER_KEY_PATH: private_key.pem
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python run.py
+
+      - name: Clean up certificate files
+        if: always()
+        run: rm -f certificate.pem private_key.pem
+
+      - name: Deploy report to gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages-tmp
+          git rm -rf .
+          cp output/index.html index.html
+          git add index.html
+          git commit -m "Update daily finance report"
+          git push origin gh-pages-tmp:gh-pages --force

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div class="max-w-2xl mx-auto px-4 py-8">
+
+        <header class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">{{ report_title }}</h1>
+            <p class="text-sm text-gray-500 mt-1">{{ generated_at }}</p>
+        </header>
+
+        <!-- Bank Accounts -->
+        <section class="mb-10">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Bank Accounts</h2>
+            {% if bank_accounts %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="text-left px-4 py-3 font-medium text-gray-600">Account</th>
+                            <th class="text-right px-4 py-3 font-medium text-gray-600">Balance</th>
+                            <th class="text-right px-4 py-3 font-medium text-gray-600">Available</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for acct in bank_accounts %}
+                        <tr class="border-b border-gray-100 last:border-0">
+                            <td class="px-4 py-3">
+                                <span class="font-medium">{{ acct.name }}</span>
+                                <span class="text-gray-400 text-xs ml-1">{{ acct.subtype }}</span>
+                            </td>
+                            <td class="text-right px-4 py-3 font-mono">${{ "%.2f"|format(acct.balance) }}</td>
+                            <td class="text-right px-4 py-3 font-mono text-gray-500">
+                                {% if acct.available is not none %}
+                                    ${{ "%.2f"|format(acct.available) }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500">No bank accounts linked.</p>
+            {% endif %}
+        </section>
+
+        <!-- Credit Cards -->
+        <section>
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Credit Cards</h2>
+            {% if credit_cards %}
+                {% for card in credit_cards %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-900">{{ card.name }}</h3>
+                        <span class="text-lg font-mono font-bold text-red-600">${{ "%.2f"|format(card.balance) }}</span>
+                    </div>
+
+                    {% if card.transactions %}
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="text-left px-4 py-2 font-medium text-gray-600">Date</th>
+                                <th class="text-left px-4 py-2 font-medium text-gray-600">Merchant</th>
+                                <th class="text-right px-4 py-2 font-medium text-gray-600">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in card.transactions %}
+                            <tr class="border-b border-gray-100 last:border-0">
+                                <td class="px-4 py-2 text-gray-500">{{ txn.date }}</td>
+                                <td class="px-4 py-2">
+                                    {% if txn.is_large %}
+                                    <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5" title="Large purchase (${{ "%.2f"|format(txn.amount|abs) }} exceeds ${{ large_purchase_threshold }} threshold)"></span>
+                                    {% endif %}
+                                    {{ txn.merchant }}
+                                </td>
+                                <td class="text-right px-4 py-2 font-mono {% if txn.is_large %}text-amber-600 font-semibold{% endif %}">
+                                    ${{ "%.2f"|format(txn.amount|abs) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="px-4 py-3 text-sm text-gray-500">No recent transactions.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+            <p class="text-sm text-gray-500">All credit cards have a zero balance. Nothing to report.</p>
+            {% endif %}
+        </section>
+
+        <footer class="mt-10 pt-4 border-t border-gray-200 text-xs text-gray-400">
+            Generated automatically. Transactions over ${{ large_purchase_threshold }} are flagged with an amber indicator.
+        </footer>
+
+    </div>
+</body>
+</html>
